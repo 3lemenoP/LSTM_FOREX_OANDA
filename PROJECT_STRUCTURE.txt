@@ -1,0 +1,12 @@
+LSTM_FOREX_OANDA/
+│
+├── data/
+│   └── forex_data.csv          # Historical Forex data in CSV format
+│
+├── models/
+│   └── forex_lstm_model.h5     # Trained LSTM model saved as an HDF5 file
+│
+└── src/
+    ├── forex_data_downloader.py # Script to download Forex data from OANDA
+    ├── forex_lstm_model.py      # Script to train and evaluate the LSTM model
+    └── forex_lstm_predict.py    # Script to load the trained model and make predictions
