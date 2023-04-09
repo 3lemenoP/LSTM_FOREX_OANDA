@@ -9,4 +9,4 @@ LSTM_FOREX_OANDA/
 └── src/
     ├── forex_data_downloader.py # Script to download Forex data from OANDA
     ├── forex_lstm_model.py      # Script to train and evaluate the LSTM model
-    └── forex_lstm_predict.py    # Script to load the trained model and make predictions
+
