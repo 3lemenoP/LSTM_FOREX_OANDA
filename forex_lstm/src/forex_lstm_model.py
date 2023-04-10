@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from keras.models import Sequential
-from keras.layers import LSTM, Dense
+from keras.layers import LSTM, Dense, Dropout
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 
@@ -45,15 +45,22 @@ class ForexLSTM:
         self.trainX = self.trainX.reshape(self.trainX.shape[0], 1, self.trainX.shape[1])
         self.testX = self.testX.reshape(self.testX.shape[0], 1, self.testX.shape[1])
 
-    def create_and_compile_model(self, lstm_units=50):
-        # Create the LSTM model with 2 LSTM layers and 1 Dense layer
-        self.model = Sequential()
-        self.model.add(LSTM(lstm_units, input_shape=(1, self.look_back), return_sequences=True))
-        self.model.add(LSTM(lstm_units))
-        self.model.add(Dense(1))
+        def create_and_compile_model(self, lstm_units=100):
+            # Create the LSTM model with 3 LSTM layers, 2 Dense layers, and dropout layers
+            self.model = Sequential()
+            self.model.add(LSTM(lstm_units, input_shape=(1, self.look_back), return_sequences=True))
+            self.model.add(Dropout(0.2))
+            self.model.add(LSTM(lstm_units, return_sequences=True))
+            self.model.add(Dropout(0.2))
+            self.model.add(LSTM(lstm_units // 2))
+            self.model.add(Dropout(0.2))
+            self.model.add(Dense(lstm_units // 2, activation='relu'))
+            self.model.add(Dense(32, activation='relu'))
+            self.model.add(Dense(1, activation='linear'))
 
-        # Compile the model
-        self.model.compile(loss='mean_squared_error', optimizer='adam')
+            # Compile the model
+            self.model.compile(loss='mean_squared_error', optimizer='adam')
+
 
 
     def train_model(self):

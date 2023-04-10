@@ -46,7 +46,7 @@ def download_forex_data(api_key, instrument, granularity, start, end, output_fil
 if __name__ == "__main__":
     api_key = "0cdbfcbfc6e6ed2cdf4db30d7aaa5474-c60fbb78ce2ad07bfd09cbb569210c5e"
     instrument = "EUR_USD"
-    granularity = "H1"
+    granularity = "M15"
     start = "2020-01-01T00:00:00Z"
     end = "2023-01-01T00:00:00Z"
     output_file = "/Users/maxlicciardi/LSTM_OANDA/LSTM_FOREX_OANDA/forex_lstm/data/forex_data.csv"
