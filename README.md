@@ -1,4 +1,5 @@
-OandaAPI: 0cdbfcbfc6e6ed2cdf4db30d7aaa5474-c60fbb78ce2ad07bfd09cbb569210c5e
+OandaAPI: 5a3897d1a03ebf8418a4d25c08fabb57-3d8be3f4c3bda05296a29bd949d664e7
+
 
 LSTM Forex Prediction Model
 This project aims to predict Forex price movements using an LSTM (Long Short-Term Memory) model, a type of recurrent neural network (RNN). The model is trained on historical Forex data obtained from OANDA.

@@ -1,53 +1,114 @@
 import numpy as np
 import pandas as pd
+import time
+import requests
 from keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
+import oandapyV20
+from oandapyV20 import API
+from oandapyV20.endpoints import accounts, instruments, orders, trades
+
+access_token = '56bbc94c833afc8606c6b1420b93453b-34b65646039c8c90c001aba7e7af6330'
+api = API(access_token=access_token)
+
+def get_account_id(api):
+    try:
+        accounts_request = accounts.AccountList()
+        api.request(accounts_request)
+        response = accounts_request.response
+        account_id = response['accounts'][0]['id']
+        return account_id
+    except Exception as e:
+        print("Error while fetching account ID:", str(e))
+        return None
 
 class ForexPredictor:
-    def __init__(self, model_file, input_file, look_back=3):
-        self.model_file = model_file
-        self.input_file = input_file
-        self.look_back = look_back
+    def __init__(self, model_file, api_key, instrument, granularity, look_back, account_id):
         self.model = load_model(model_file)
+        self.api_key = api_key
+        self.instrument = instrument
+        self.granularity = granularity
+        self.look_back = look_back
         self.scaler = MinMaxScaler(feature_range=(0, 1))
-        
-    def preprocess_data(self):
-        # Load and scale the data
-        df = pd.read_csv(self.input_file)
-        dataset = df['close'].values
-        dataset = dataset.astype('float32')
-        dataset = dataset.reshape(-1, 1)
-        dataset = self.scaler.fit_transform(dataset)
-        return dataset
-        
-    def predict(self, steps_ahead=1):
-        dataset = self.preprocess_data()
-        
-        # Create the input for the model with the last 'look_back' data points
-        input_data = dataset[-self.look_back:]
-        input_data = input_data.reshape(1, 1, self.look_back)
-        
-        # Make predictions for the specified number of time steps ahead
+        self.account_id = account_id
+
+
+    def get_candles(self):
+        try:
+            account_id = self.account_id
+            instrument = self.instrument
+            granularity = self.granularity
+            count = self.look_back
+
+            params = {"granularity": granularity, "count": count}
+            endpoint = instruments.InstrumentsCandles(instrument, params=params)
+            api.request(endpoint)
+            response = endpoint.response
+
+            candles = []
+            for candle in response['candles']:
+                candles.append(float(candle['mid']['c']))
+            return candles
+
+        except Exception as e:
+            print("Error while fetching candles:", str(e))
+            return None
+
+    
+        # If all retries fail, return None
+            print("Failed to get candles after all retries.")
+            return None
+
+
+
+    def preprocess_data(self, data):
+        data = np.array(data)  # Convert list to NumPy array
+        scaled_data = self.scaler.fit_transform(data.reshape(-1, 1))
+        X = scaled_data[-self.look_back:]  # Get the last look_back (3) values
+        X = np.reshape(X, (1, 1, X.shape[0]))  # Adjust the shape to (None, 1, 3)
+        return X
+
+
+
+
+    def predict_on_new_candle(self, steps_ahead=5):
+        candles = self.get_candles()
+
+        if candles is None:
+            print("Failed to get candles for prediction.")
+            return None
+
         predictions = []
         for _ in range(steps_ahead):
-            prediction = self.model.predict(input_data)
-            predictions.append(prediction)
-            
-            # Update the input data to include the latest prediction and remove the oldest data point
-            input_data = np.append(input_data[:, :, 1:], prediction, axis=2)
-        
-        # Inverse transform the predictions to their original scale
-        predictions = np.array(predictions).reshape(-1, 1)
-        predictions = self.scaler.inverse_transform(predictions)
+            X = self.preprocess_data(candles)
+            prediction = self.model.predict(X)
+            predicted_price = self.scaler.inverse_transform(prediction)
+            predictions.append(predicted_price[0][0])
+
+            # Append the predicted price to candles and remove the oldest value
+            candles.append(predicted_price[0][0])
+            candles.pop(0)
+
         return predictions
 
+
+
 if __name__ == "__main__":
-    model_file = "models/forex_lstm_model.h5"
-    input_file = "data/forex_data.csv"
-    
-    forex_predictor = ForexPredictor(model_file, input_file)
-    steps_ahead = 4  # Number of 15-minute intervals to predict ahead
-    predictions = forex_predictor.predict(steps_ahead)
-    
-    for i, prediction in enumerate(predictions, start=1):
-        print(f"Prediction {i} (in {i*15} minutes): {prediction[0]:.5f}")
+    model_file = "/Users/maxlicciardi/LSTM_OANDA/LSTM_FOREX_OANDA/forex_lstm/models/model.h5"
+    api_key = "5a3897d1a03ebf8418a4d25c08fabb57-3d8be3f4c3bda05296a29bd949d664e7"
+    instrument = "EUR_USD"
+    granularity = "M15"
+    look_back = 3
+    steps_ahead = 10
+
+    account_id = get_account_id(api)
+    if account_id is None:
+        print("Failed to get account ID.")
+    else:
+        forex_predictor = ForexPredictor(model_file, api_key, instrument, granularity, look_back, account_id)
+        predictions = forex_predictor.predict_on_new_candle(steps_ahead)
+        if predictions is not None:
+            for i, prediction in enumerate(predictions):
+                print(f"Predicted price {i+1}: {prediction:.5f}")
+        else:
+            print("Failed to generate predictions.")
