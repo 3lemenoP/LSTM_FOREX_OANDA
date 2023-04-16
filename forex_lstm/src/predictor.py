@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import time
 import requests
+import plotly.graph_objs as go
+import plotly.subplots as sp
 from keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 import oandapyV20
@@ -21,6 +23,26 @@ def get_account_id(api):
     except Exception as e:
         print("Error while fetching account ID:", str(e))
         return None
+
+def plot_forex_chart(candles, predictions, instrument):
+    data = pd.DataFrame(candles, columns=['Close'])
+    data.index = pd.to_datetime(data.index, unit='s')
+
+    # Add the predictions to the original data
+    for i, pred in enumerate(predictions):
+        data.loc[data.index[-1] + pd.Timedelta(minutes=15 * (i + 1))] = pred
+
+    # Create a plotly line chart
+    fig = sp.make_subplots(specs=[[{'secondary_y': True}]])
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close'), secondary_y=False)
+
+    # Set axis labels and chart title
+    fig.update_layout(title=f'{instrument} Predictions', xaxis_title='Time', yaxis_title='Price')
+
+    # Display the chart
+    fig.show()
+
+
 
 class ForexPredictor:
     def __init__(self, model_file, api_key, instrument, granularity, look_back, account_id):
@@ -94,11 +116,11 @@ class ForexPredictor:
 
 
 if __name__ == "__main__":
-    model_file = "/Users/maxlicciardi/LSTM_OANDA/LSTM_FOREX_OANDA/forex_lstm/models/model.h5"
+    model_file = "/Users/maxlicciardi/LSTM_OANDA/LSTM_FOREX_OANDA/forex_lstm/models/forex_lstm_model.h5"
     api_key = "5a3897d1a03ebf8418a4d25c08fabb57-3d8be3f4c3bda05296a29bd949d664e7"
     instrument = "EUR_USD"
     granularity = "M15"
-    look_back = 3
+    look_back = 32
     steps_ahead = 10
 
     account_id = get_account_id(api)
@@ -110,5 +132,10 @@ if __name__ == "__main__":
         if predictions is not None:
             for i, prediction in enumerate(predictions):
                 print(f"Predicted price {i+1}: {prediction:.5f}")
+
+            # Plot the chart with predictions
+            plot_forex_chart(forex_predictor.get_candles(), predictions, instrument)
         else:
             print("Failed to generate predictions.")
+
+
