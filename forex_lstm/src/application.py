@@ -1,6 +1,5 @@
 import tkinter as tk
 from forex_predictor import ForexPredictor, get_account_id
-import oandapyV20
 from oandapyV20 import API
 import plotly.graph_objs as go
 from plotly.offline import init_notebook_mode, plot
@@ -20,7 +19,7 @@ class Application(tk.Tk):
         instrument = "EUR_USD"
         granularity = "M15"
         look_back = 32
-        steps_ahead = 50
+        steps_ahead = 60
 
         access_token = '56bbc94c833afc8606c6b1420b93453b-34b65646039c8c90c001aba7e7af6330'
         api = API(access_token=access_token)
